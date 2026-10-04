@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocInvestigate AI — Intelligent Multi-Document Investigator (ALG-AI-02)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #070a13; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+
+    .glow-indigo { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.35); }
+    .glow-rose { box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35); }
+    .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }
+
+    .tab-active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+      border-color: #6366f1;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="bg-[#050811] text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- ==================================================== -->
+  <!-- 1. TOP HEADER & MULTI-LANGUAGE NAVIGATION            -->
+  <!-- ==================================================== -->
+  <header class="border-b border-slate-800/80 bg-[#090e1c]/95 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3 flex items-center justify-between">
+    <!-- Brand / Logo -->
+    <div class="flex items-center gap-3 cursor-pointer" onclick="switchMainTab('dashboard')">
+      <div class="h-10 w-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 flex-shrink-0">
+        <i data-lucide="file-search" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-black text-lg tracking-tight text-white">DocInvestigate AI</span>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-700/60">ALG-AI-02</span>
+        </div>
+        <p class="text-[11px] text-slate-400 font-medium hidden sm:block" id="header-tagline">Intelligent Multi-Document Investigator & Conflict Detection Platform</p>
+      </div>
+    </div>
+
+    <!-- Active Document Workspace Pill -->
+    <div class="hidden lg:flex items-center gap-2 bg-[#0d1527] border border-slate-800 px-3 py-1 rounded-xl text-xs">
+      <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span class="text-slate-400 text-xs" id="active-pkg-label">Active Workspace: <strong class="text-indigo-300 font-semibold">Corporate & Legal Agreement Bundle (8 Docs)</strong></span>
+    </div>
+
+    <!-- Right Controls: 5 Languages + Actions -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- 🌐 Language Selector (5 Languages) -->
+      <div class="flex items-center bg-[#0d1527] border border-slate-700/80 rounded-xl px-2.5 py-1 text-xs">
+        <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400 mr-1.5 flex-shrink-0"></i>
+        <select id="langSelector" onchange="changeLanguage(this.value)" class="bg-transparent text-slate-200 font-bold outline-none cursor-pointer">
+          <option value="en" class="bg-slate-900">English (EN)</option>
+          <option value="ta" class="bg-slate-900">தமிழ் (Tamil)</option>
+          <option value="hi" class="bg-slate-900">हिन्दी (Hindi)</option>
+          <option value="te" class="bg-slate-900">తెలుగు (Telugu)</option>
+          <option value="ml" class="bg-slate-900">മലയാളം (Malayalam)</option>
+        </select>
+      </div>
+
+      <!-- Quick Preset Loader -->
+      <button onclick="quickLoadBenchmark()" title="Reset to Sample Case" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span id="btn-bench-label">Sample Data</span>
+      </button>
+
+      <!-- User Profile -->
+      <div class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#0d1527] border border-slate-800 text-xs text-slate-300">
+        <div class="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">AI</div>
+        <span class="font-medium text-slate-200 hidden md:inline">Investigator</span>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ==================================================== -->
+  <!-- 2. WORKFLOW NAVIGATION TABS                          -->
+  <!-- ==================================================== -->
+  <nav class="bg-[#080d1a] border-b border-slate-800/80 px-4 sm:px-6 py-2 overflow-x-auto">
+    <div class="max-w-7xl mx-auto flex items-center gap-2 text-xs font-bold min-w-max">
+      <!-- 1. Dashboard -->
+      <button id="nav-tab-dashboard" onclick="switchMainTab('dashboard')" class="tab-active px-3.5 py-2 rounded-xl border border-transparent flex items-center gap-2 transition">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span id="tab-label-dashboard">Dashboard</span>
+      </button>
+
+      <!-- 2. Upload Document -->
+      <button id="nav-tab-upload" onclick="switchMainTab('upload')" class="px-3.5 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-[#0d1527] text-slate-300 flex items-center gap-2 transition">
+        <i data-lucide="upload-cloud" class="w-4 h-4 text-indigo-400"></i>
+        <span id="tab-label-upload">📄 Upload Document</span>
+      </button>
+
+      <!-- 3. Important Points / Key Info -->
+      <button id="nav-tab-points" onclick="switchMainTab('points')" class="px-3.5 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-[#0d1527] text-slate-300 flex items-center gap-2 transition">
+        <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+        <span id="tab-label-points">📋 Important Points</span>
+      </button>
+
+      <!-- 4. Ask Questions / Investigation -->
+      <button id="nav-tab-qa" onclick="switchMainTab('qa')" class="px-3.5 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-[#0d1527] text-slate-300 flex items-center gap-2 transition">
+        <i data-lucide="help-circle" class="w-4 h-4 text-purple-400"></i>
+        <span id="tab-label-qa">🔍 Investigate Documents</span>
+      </button>
+
+      <!-- 5. Compare Documents -->
+      <button id="nav-tab-compare" onclick="switchMainTab('compare')" class="px-3.5 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-[#0d1527] text-slate-300 flex items-center gap-2 transition">
+        <i data-lucide="scale" class="w-4 h-4 text-blue-400"></i>
+        <span id="tab-label-compare">⚖️ Compare Documents</span>
+      </button>
+
+      <!-- 6. View Conflicts -->
+      <button id="nav-tab-conflicts" onclick="switchMainTab('conflicts')" class="px-3.5 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-[#0d1527] text-slate-300 flex items-center gap-2 transition">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+        <span id="tab-label-conflicts">⚠️ View Conflicts (3)</span>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- ==================================================== -->
+  <!-- 3. MAIN APPLICATION CONTENT VIEWS                    -->
+  <!-- ==================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ================================================== -->
+    <!-- TAB 1: MAIN DASHBOARD                              -->
+    <!-- ================================================== -->
+    <section id="view-dashboard" class="space-y-6">
+      
+      <!-- Welcome Banner -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0d1527] via-indigo-950/40 to-[#0d1527] border border-slate-800/80 p-6 rounded-3xl shadow-xl">
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60" id="dash-live-badge">INVESTIGATION ACTIVE</span>
+            <span class="text-xs text-slate-400 font-mono">04 Oct 2026</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight" id="dash-title">Multi-Document Investigation Dashboard</h1>
+          <p class="text-xs sm:text-sm text-slate-400 max-w-2xl" id="dash-desc">
+            Evidence-backed multi-document investigation layer. Cross-document comparison, automatic conflict detection, date/deadline tracking, and strict source citation.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <button onclick="switchMainTab('upload')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span id="btn-upload-dash">Upload Documents</span>
+          </button>
+          <button onclick="switchMainTab('qa')" class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30 transition">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span id="btn-investigate-dash">Ask Question</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 6 METRIC CARDS (Exact PS Specification) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        
+        <!-- Card 1: Total Documents -->
+        <div class="bg-[#0b101f] border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold" id="card-total-docs-lbl">Total Documents</span>
+            <i data-lucide="folder" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-white" id="card-total-docs-val">8</div>
+          <div class="text-[10px] text-slate-500 font-mono mt-1">Multi-format bundle</div>
+        </div>
+
+        <!-- Card 2: Documents Analyzed -->
+        <div class="bg-[#0b101f] border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between hover:border-emerald-800/60 transition">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold" id="card-analyzed-lbl">Documents Analyzed</span>
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-emerald-400" id="card-analyzed-val">7</div>
+          <div class="text-[10px] text-emerald-500/80 font-mono mt-1">100% OCR & parsed</div>
+        </div>
+
+        <!-- Card 3: Pending -->
+        <div class="bg-[#0b101f] border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between hover:border-amber-800/60 transition">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold" id="card-pending-lbl">Pending</span>
+            <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-amber-400" id="card-pending-val">1</div>
+          <div class="text-[10px] text-amber-500/80 font-mono mt-1">Processing queue</div>
+        </div>
+
+        <!-- Card 4: Important Findings -->
+        <div class="bg-[#0b101f] border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between hover:border-purple-800/60 transition">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold" id="card-findings-lbl">Important Findings</span>
+            <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-purple-400" id="card-findings-val">14</div>
+          <div class="text-[10px] text-purple-400/80 font-mono mt-1">Evidence extracted</div>
+        </div>
+
+        <!-- Card 5: Conflicts Detected -->
+        <div class="bg-[#0b101f] border border-rose-900/40 p-4 rounded-2xl flex flex-col justify-between glow-rose">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold text-rose-300" id="card-conflicts-lbl">Conflicts Detected</span>
+            <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-rose-400" id="card-conflicts-val">3</div>
+          <div class="text-[10px] text-rose-400 font-mono mt-1">Cross-Doc Mismatch</div>
+        </div>
+
+        <!-- Card 6: Upcoming Deadlines -->
+        <div class="bg-[#0b101f] border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between hover:border-cyan-800/60 transition">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold" id="card-deadlines-lbl">Upcoming Deadlines</span>
+            <i data-lucide="calendar-alert" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-cyan-400" id="card-deadlines-val">5</div>
+          <div class="text-[10px] text-cyan-400/80 font-mono mt-1">Timeline tracked</div>
+        </div>
+
+      </div>
+
+      <!-- Quick Action Navigation Tiles -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div onclick="switchMainTab('upload')" class="cursor-pointer bg-[#0d1527] hover:bg-[#111c34] border border-slate-800 hover:border-indigo-500/50 p-5 rounded-2xl transition group space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition">
+              <i data-lucide="file-up" class="w-5 h-5"></i>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition"></i>
+          </div>
+          <h3 class="font-extrabold text-sm text-white" id="tile-upload-title">📄 Upload Document</h3>
+          <p class="text-xs text-slate-400" id="tile-upload-desc">Upload PDF, DOCX, TXT, JPG, PNG with multi-file support.</p>
+        </div>
+
+        <div onclick="switchMainTab('points')" class="cursor-pointer bg-[#0d1527] hover:bg-[#111c34] border border-slate-800 hover:border-emerald-500/50 p-5 rounded-2xl transition group space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition">
+              <i data-lucide="list-checks" class="w-5 h-5"></i>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition"></i>
+          </div>
+          <h3 class="font-extrabold text-sm text-white" id="tile-points-title">📋 Important Points</h3>
+          <p class="text-xs text-slate-400" id="tile-points-desc">Dates, Eligibility, Financial, Requirements with exact page citations.</p>
+        </div>
+
+        <div onclick="switchMainTab('qa')" class="cursor-pointer bg-[#0d1527] hover:bg-[#111c34] border border-slate-800 hover:border-purple-500/50 p-5 rounded-2xl transition group space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-purple-400 transition"></i>
+          </div>
+          <h3 class="font-extrabold text-sm text-white" id="tile-investigate-title">🔍 Investigate Documents</h3>
+          <p class="text-xs text-slate-400" id="tile-investigate-desc">Natural language Q&A backed strictly by document quotes & page #s.</p>
+        </div>
+
+        <div onclick="switchMainTab('conflicts')" class="cursor-pointer bg-[#0d1527] hover:bg-[#111c34] border border-slate-800 hover:border-rose-500/50 p-5 rounded-2xl transition group space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition">
+              <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-rose-400 transition"></i>
+          </div>
+          <h3 class="font-extrabold text-sm text-white" id="tile-conflicts-title">⚠️ View Conflicts</h3>
+          <p class="text-xs text-slate-400" id="tile-conflicts-desc">Detect mismatches, expired terms, and superseding clauses.</p>
+        </div>
+
+      </div>
+
+      <!-- Recent Document Repository Table -->
+      <div class="bg-[#0b101f] border border-slate-800/80 rounded-3xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="files" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="text-sm font-extrabold text-white" id="active-docs-heading">Active Documents Under Investigation (8)</h3>
+          </div>
+          <span class="text-xs text-slate-400" id="active-docs-sub">Click any document to inspect extracted entities</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-[#070b16] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4" id="th-name">Document Name</th>
+                <th class="py-3 px-4" id="th-type">Type</th>
+                <th class="py-3 px-4" id="th-pages">Pages</th>
+                <th class="py-3 px-4" id="th-status">Status</th>
+                <th class="py-3 px-4" id="th-date">Date Added</th>
+                <th class="py-3 px-4 text-right" id="th-action">Action</th>
+              </tr>
+            </thead>
+            <tbody id="dashDocsTableBody" class="divide-y divide-slate-800/60 font-medium">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TAB 2: DOCUMENT UPLOAD                             -->
+    <!-- ================================================== -->
+    <section id="view-upload" class="hidden space-y-6">
+      <div class="bg-[#0b101f] border border-slate-800/80 p-6 rounded-3xl space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-black text-white" id="upload-main-title">Upload Multiple Documents for Investigation</h2>
+            <p class="text-xs text-slate-400" id="upload-main-desc">Upload Contracts, Amendments, Financial Statements, Guidelines, Invoices, Certificates. Supported: PDF, DOCX, TXT, JPG, PNG.</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-indigo-950 text-indigo-400 border border-indigo-700/50">Multi-File OCR Ready</span>
+        </div>
+
+        <!-- Drag & Drop Box -->
+        <div id="dropZone" onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-indigo-500/40 hover:border-indigo-500 bg-[#0d1527]/50 hover:bg-[#0d1527] rounded-3xl p-8 sm:p-12 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-4">
+          <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.json,.csv" class="hidden" onchange="handleFileSelect(event)">
+          <div class="h-16 w-16 rounded-2xl bg-indigo-600/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-lg">
+            <i data-lucide="cloud-upload" class="w-8 h-8"></i>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm font-extrabold text-white" id="drop-text-primary">Click to Browse or Drag & Drop Documents Here</p>
+            <p class="text-xs text-slate-400" id="drop-text-formats">Supported Formats: PDF, DOCX, TXT, JPG, PNG (Max 50MB each)</p>
+          </div>
+          <button type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md">
+            Select Documents
+          </button>
+        </div>
+
+        <!-- Live Upload Pipeline Progress Animation -->
+        <div id="uploadProgressBox" class="hidden bg-[#070b16] border border-indigo-800/50 p-4 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between text-xs font-bold text-indigo-300">
+            <span id="uploadProgressStep">Uploading & OCR Processing...</span>
+            <span id="uploadProgressPct">68%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="uploadProgressBar" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2 rounded-full transition-all duration-300" style="width: 68%;"></div>
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+            <span>Document Uploaded &rarr; Processing &rarr; Analyzing &rarr; Completed ✓</span>
+          </div>
+        </div>
+
+        <!-- Processed Documents Master Table -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400" id="uploaded-list-title">Processed Document Repository</h3>
+          <div class="overflow-x-auto border border-slate-800/80 rounded-2xl">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-[#070b16] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Name</th>
+                  <th class="py-3 px-4">Type</th>
+                  <th class="py-3 px-4">Pages</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Date Added</th>
+                  <th class="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="uploadDocsTableBody" class="divide-y divide-slate-800/60 font-medium">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button onclick="switchMainTab('points')" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-indigo-600 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg transition">
+            <span>Inspect Extracted Points</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TAB 3: IMPORTANT POINTS / KEY INFORMATION          -->
+    <!-- ================================================== -->
+    <section id="view-points" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0b101f] border border-slate-800/80 p-6 rounded-3xl">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700/50">EVIDENCE-BACKED EXTRACTIONS</span>
+          </div>
+          <h2 class="text-xl font-black text-white mt-1" id="points-main-heading">Key Information & Entity Extraction</h2>
+          <p class="text-xs text-slate-400" id="points-main-sub">Every extraction is strictly grounded with source document name and exact page reference.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium">Filter Category:</span>
+          <select id="pointsFilter" onchange="renderImportantPoints(this.value)" class="bg-[#070b16] border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 outline-none">
+            <option value="all">All Categories</option>
+            <option value="dates">📅 Important Dates & Deadlines</option>
+            <option value="eligibility">📋 Eligibility & Requirements</option>
+            <option value="financial">💰 Financial Details & Values</option>
+            <option value="requirements">⚠️ Important Rules & Clauses</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 4 Core Information Extraction Grids -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="importantPointsContainer">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TAB 4: NATURAL LANGUAGE QUESTIONS & INVESTIGATION  -->
+    <!-- ================================================== -->
+    <section id="view-qa" class="hidden space-y-6">
+      
+      <div class="bg-[#0b101f] border border-slate-800/80 p-6 rounded-3xl space-y-6">
+        
+        <div class="border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-purple-950 text-purple-400 border border-purple-700/50">STRICT DOCUMENT GROUNDING</span>
+          </div>
+          <h2 class="text-xl font-black text-white mt-1" id="qa-main-heading">Ask Natural Language Questions</h2>
+          <p class="text-xs text-slate-400" id="qa-main-sub">The system investigates and answers using ONLY the uploaded document evidence.</p>
+        </div>
+
+        <!-- Interactive Question Input Bar -->
+        <form onsubmit="handleUserQuestion(event)" class="space-y-3">
+          <div class="relative flex items-center">
+            <i data-lucide="search" class="w-5 h-5 text-indigo-400 absolute left-4"></i>
+            <input type="text" id="userQueryInput" placeholder="Ask anything, e.g. What is the deadline? Who is eligible? Are there any conflicting requirements?" class="w-full pl-12 pr-28 py-3.5 bg-[#070b16] border border-indigo-500/50 focus:border-indigo-400 rounded-2xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 outline-none shadow-inner">
+            <button type="submit" class="absolute right-2.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition">
+              <span id="btn-ask-text">Ask AI</span>
+              <i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </form>
+
+        <!-- Suggested Question Probes (Exact Categories from PS) -->
+        <div class="space-y-3 pt-1">
+          <div class="text-[11px] font-mono uppercase text-slate-400 font-bold" id="suggested-heading">Suggested Investigation Questions:</div>
+          
+          <div class="space-y-2">
+            <!-- Basic Questions -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-900 text-slate-400 rounded-md border border-slate-800">Basic:</span>
+              <button onclick="askPreset('What is the deadline?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-indigo-900/40 border border-slate-700/80 hover:border-indigo-500 text-slate-300 text-xs rounded-lg transition">What is the deadline?</button>
+              <button onclick="askPreset('Who is eligible?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-indigo-900/40 border border-slate-700/80 hover:border-indigo-500 text-slate-300 text-xs rounded-lg transition">Who is eligible?</button>
+              <button onclick="askPreset('What documents are required?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-indigo-900/40 border border-slate-700/80 hover:border-indigo-500 text-slate-300 text-xs rounded-lg transition">What documents are required?</button>
+              <button onclick="askPreset('What is the tender value?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-indigo-900/40 border border-slate-700/80 hover:border-indigo-500 text-slate-300 text-xs rounded-lg transition">What is the total value?</button>
+            </div>
+
+            <!-- Investigation Questions -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-900 text-slate-400 rounded-md border border-slate-800">Investigation:</span>
+              <button onclick="askPreset('Which document mentions the eligibility criteria?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-purple-900/40 border border-slate-700/80 hover:border-purple-500 text-slate-300 text-xs rounded-lg transition">Which document mentions eligibility criteria?</button>
+              <button onclick="askPreset('What are the important requirements?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-purple-900/40 border border-slate-700/80 hover:border-purple-500 text-slate-300 text-xs rounded-lg transition">What are the important requirements?</button>
+              <button onclick="askPreset('Are there any missing documents?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-purple-900/40 border border-slate-700/80 hover:border-purple-500 text-slate-300 text-xs rounded-lg transition">Are there any missing documents?</button>
+            </div>
+
+            <!-- Cross-Document Questions -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-900 text-slate-400 rounded-md border border-slate-800">Cross-Doc:</span>
+              <button onclick="askPreset('What is different between these two documents?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-rose-900/40 border border-slate-700/80 hover:border-rose-500 text-slate-300 text-xs rounded-lg transition">What is different between these two documents?</button>
+              <button onclick="askPreset('Do these documents mention the same deadline?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-rose-900/40 border border-slate-700/80 hover:border-rose-500 text-slate-300 text-xs rounded-lg transition">Do these documents mention the same deadline?</button>
+              <button onclick="askPreset('Are there any conflicting requirements?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-rose-900/40 border border-slate-700/80 hover:border-rose-500 text-slate-300 text-xs rounded-lg transition">Are there any conflicting requirements?</button>
+              <button onclick="askPreset('Which document has the latest information?')" class="px-2.5 py-1 bg-[#0d1527] hover:bg-rose-900/40 border border-slate-700/80 hover:border-rose-500 text-slate-300 text-xs rounded-lg transition">Which document has latest information?</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Answer Box (Exact Specification Layout) -->
+        <div id="qaResultBox" class="space-y-4 pt-2">
+          <!-- Injected via JavaScript -->
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TAB 5: COMPARE DOCUMENTS                           -->
+    <!-- ================================================== -->
+    <section id="view-compare" class="hidden space-y-6">
+      
+      <div class="bg-[#0b101f] border border-slate-800/80 p-6 rounded-3xl space-y-6">
+        <div class="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-xl font-black text-white" id="compare-heading">Side-by-Side Multi-Document Comparison</h2>
+            <p class="text-xs text-slate-400" id="compare-sub">Directly compares primary source requirements against secondary submissions and amendments.</p>
+          </div>
+          <span class="text-xs font-mono px-3 py-1 rounded-full bg-blue-950 text-blue-400 border border-blue-800/60">Cross-Doc Matrix</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-[#070b16] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
+              <tr>
+                <th class="py-3.5 px-4 w-1/4" id="cmp-th-req">Clause / Topic</th>
+                <th class="py-3.5 px-4 w-1/3" id="cmp-th-tender">Primary Document Requirement</th>
+                <th class="py-3.5 px-4 w-1/3" id="cmp-th-bidder">Secondary / Amendment Evidence</th>
+                <th class="py-3.5 px-4 text-center" id="cmp-th-status">Comparison Status</th>
+              </tr>
+            </thead>
+            <tbody id="compareTableBody" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TAB 6: VIEW CONFLICTS & DATE RESOLUTION            -->
+    <!-- ================================================== -->
+    <section id="view-conflicts" class="hidden space-y-6">
+      
+      <!-- Date Resolution / Latest Information Card -->
+      <div class="bg-[#0b101f] border border-indigo-900/50 p-6 rounded-3xl space-y-4 glow-indigo">
+        <div class="flex items-center gap-2">
+          <div class="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+            <i data-lucide="clock-rewind" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white" id="date-res-title">📅 Date & Latest Information Resolution</h3>
+            <p class="text-xs text-slate-400" id="date-res-sub">Automatic detection of addenda and amendment notices superseding original document dates.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div class="bg-[#070b16] border border-slate-800 p-4 rounded-2xl space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono font-bold uppercase text-slate-400">Original Primary Document</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 line-through">15 Oct 2026</span>
+            </div>
+            <div class="text-xs text-slate-300">Original effective deadline stated in Section 1.3 of Primary Agreement.</div>
+            <div class="text-[11px] text-slate-500 font-mono">📄 Master_Service_Agreement.pdf &mdash; Page 4</div>
+          </div>
+
+          <div class="bg-[#070b16] border border-emerald-900/60 p-4 rounded-2xl space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono font-bold uppercase text-emerald-400">Amendment Notice v2 (SUPERSEDED)</span>
+              <span class="text-xs px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-700/50">25 Oct 2026</span>
+            </div>
+            <div class="text-xs text-emerald-200">Deadline officially extended by 10 days due to operational review.</div>
+            <div class="text-[11px] text-emerald-400/80 font-mono">📄 Policy_Amendment_v2.pdf &mdash; Page 1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Disqualification Conflicts -->
+      <div class="bg-[#0b101f] border border-slate-800/80 p-6 rounded-3xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-octagon" class="w-5 h-5 text-rose-400"></i>
+            <h3 class="text-base font-extrabold text-white" id="conflicts-heading">Critical Document Conflicts & Discrepancies (3)</h3>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-rose-950 text-rose-400 border border-rose-800 font-mono font-bold">3 Red Flags</span>
+        </div>
+
+        <div class="space-y-4" id="conflictsListContainer">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ==================================================== -->
+  <!-- 4. FOOTER                                            -->
+  <!-- ==================================================== -->
+  <footer class="border-t border-slate-800/80 bg-[#070b16] text-slate-500 py-4 px-6 text-center text-xs">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2 font-mono text-[11px]">
+        <span>DocInvestigate AI Platform &bull; Algothon 2026 (ALG-AI-02)</span>
+      </div>
+      <div class="text-[11px] text-slate-400">
+        Evidence-backed Multi-Document Investigation Layer
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ==================================================== -->
+  <!-- 5. APPLICATION LOGIC & DATA SCRIPT                   -->
+  <!-- ==================================================== -->
+  <script>
+    const i18n = {
+      en: {
+        tagline: "Intelligent Multi-Document Investigator & Conflict Detection Platform",
+        dashLive: "INVESTIGATION ACTIVE",
+        dashTitle: "Multi-Document Investigation Dashboard",
+        dashDesc: "Evidence-backed multi-document investigation layer. Cross-document comparison, automatic conflict detection, date/deadline tracking, and strict source citation.",
+        btnUpload: "Upload Documents",
+        btnInvestigate: "Ask Question",
+        totalDocs: "Total Documents",
+        analyzed: "Documents Analyzed",
+        pending: "Pending",
+        findings: "Important Findings",
+        conflicts: "Conflicts Detected",
+        deadlines: "Upcoming Deadlines",
+        uploadTitle: "📄 Upload Document",
+        uploadDesc: "Upload PDF, DOCX, TXT, JPG, PNG with multi-file support.",
+        pointsTitle: "📋 Important Points",
+        pointsDesc: "Dates, Eligibility, Financial, Requirements with exact page citations.",
+        investigateTitle: "🔍 Investigate Documents",
+        investigateDesc: "Natural language Q&A backed strictly by document quotes & page #s.",
+        conflictsTitle: "⚠️ View Conflicts",
+        conflictsDesc: "Detect mismatches, expired terms, and superseding clauses."
+      },
+      ta: {
+        tagline: "நுண்ணறிவு பல-ஆவண ஆய்வாளர் & முரண்பாடு கண்டறியும் தளம்",
+        dashLive: "ஆய்வு செயலில் உள்ளது",
+        dashTitle: "ஆவண நுண்ணறிவு டாஷ்போர்டு",
+        dashDesc: "ஆதாரங்களுடன் கூடிய பல-ஆவண ஆய்வு அடுக்கு. ஆவணங்களுக்கிடையேயான ஒப்பீடு, முரண்பாடு கண்டறிதல் மற்றும் காலக்கெடு கண்காணிப்பு.",
+        btnUpload: "ஆவணங்களை பதிவேற்றுக",
+        btnInvestigate: "கேள்வி கேட்க",
+        totalDocs: "மொத்த ஆவணங்கள்",
+        analyzed: "ஆய்வு செய்யப்பட்டவை",
+        pending: "நிலுவையில் உள்ளவை",
+        findings: "முக்கிய கண்டுபிடிப்புகள்",
+        conflicts: "கண்டறியப்பட்ட முரண்பாடுகள்",
+        deadlines: "வரவிருக்கும் காலக்கெடுகள்",
+        uploadTitle: "📄 ஆவணம் பதிவேற்றம்",
+        uploadDesc: "PDF, DOCX, TXT, JPG, PNG பல கோப்புகள் ஒரே நேரத்தில் பதிவேற்றலாம்.",
+        pointsTitle: "📋 முக்கிய விவரங்கள்",
+        pointsDesc: "தேதிகள், தகுதி, நிதி, தேவைகள் பக்க எண்களுடன்.",
+        investigateTitle: "🔍 ஆவணங்களை ஆய்வு செய்",
+        investigateDesc: "ஆவண மேற்கோள்களுடன் கூடிய இயற்கை மொழி கேள்வி-பதில்.",
+        conflictsTitle: "⚠️ முரண்பாடுகளை காண்க",
+        conflictsDesc: "பொருந்தாமை, காலாவதியான விதிகள், தேதி மாற்றங்களை கண்டறியவும்."
+      },
+      hi: {
+        tagline: "बुद्धिमान बहु-दस्तावेज़ अन्वेषक और विवाद पहचान मंच",
+        dashLive: "जांच सक्रिय है",
+        dashTitle: "दस्तावेज़ इंटेलिजेंस डैशबोर्ड",
+        dashDesc: "साक्ष्य-आधारित बहु-दस्तावेज़ जांच प्रणाली। क्रॉस-दस्तावेज़ तुलना, स्वचालित विवाद पहचान और समय सीमा ट्रैकिंग।",
+        btnUpload: "दस्तावेज़ अपलोड करें",
+        btnInvestigate: "प्रश्न पूछें",
+        totalDocs: "कुल दस्तावेज़",
+        analyzed: "विश्लेषित दस्तावेज़",
+        pending: "लंबित",
+        findings: "महत्वपूर्ण निष्कर्ष",
+        conflicts: "पहचाने गए विवाद",
+        deadlines: "आगामी समय सीमा",
+        uploadTitle: "📄 दस्तावेज़ अपलोड",
+        uploadDesc: "PDF, DOCX, TXT, JPG, PNG बहु-फ़ाइल समर्थन।",
+        pointsTitle: "📋 महत्वपूर्ण बिंदु",
+        pointsDesc: "तिथियां, पात्रता, वित्तीय और सटीक पृष्ठ साक्ष्य।",
+        investigateTitle: "🔍 दस्तावेज़ों की जांच करें",
+        investigateDesc: "सटीक दस्तावेज़ साक्ष्य के साथ प्राकृतिक भाषा Q&A।",
+        conflictsTitle: "⚠️ विवाद देखें",
+        conflictsDesc: "असंगत आवश्यकताओं और परिवर्तित शर्तों का पता लगाएं।"
+      },
+      te: {
+        tagline: "ఇంటెలిజెంట్ మల్టీ-డాక్యుమెంట్ ఇన్వెస్టిగేటర్ & కాన్ఫ్లిక్ట్ డిటెక్షన్ ప్లాట్‌ఫారమ్",
+        dashLive: "పరిశోధన చురుకుగా ఉంది",
+        dashTitle: "డాక్యుమెంట్ ఇంటెలిజెన్స్ డాష్‌బోర్డ్",
+        dashDesc: "సాక్ష్యాలతో కూడిన బహుళ-పత్ర పరిశోధన వ్యవస్థ.",
+        btnUpload: "పత్రాలను అప్‌లోడ్ చేయండి",
+        btnInvestigate: "ప్రశ్న అడగండి",
+        totalDocs: "మొత్తం పత్రాలు",
+        analyzed: "విశ్లేషించబడినవి",
+        pending: "పెండింగ్‌లో ఉన్నవి",
+        findings: "ముఖ్యమైన వివరాలు",
+        conflicts: "గుర్తించిన విభేదాలు",
+        deadlines: "రాబోయే గడువులు",
+        uploadTitle: "📄 పత్రం అప్‌లోడ్",
+        uploadDesc: "PDF, DOCX, TXT, JPG, PNG ఫైల్స్ మద్దతు.",
+        pointsTitle: "📋 ముఖ్యమైన అంశాలు",
+        pointsDesc: "తేదీలు, అర్హత, ఆర్థిక మరియు ఖచ్చితమైన పేజీ సూచనలు.",
+        investigateTitle: "🔍 పత్రాలను పరిశోధించండి",
+        investigateDesc: "పత్ర ఆధారాలతో ప్రశ్న-సమాధానాలు.",
+        conflictsTitle: "⚠️ విభేదాలను చూడండి",
+        conflictsDesc: "తేడాలు మరియు విభేదాలను గుర్తించండి."
+      },
+      ml: {
+        tagline: "ഇന്റലിജന്റ് മൾട്ടി-ഡോക്യുമെന്റ് ഇൻവെസ്റ്റിഗേറ്റർ & കോൺഫ്ലിക്റ്റ് ഡിറ്റക്ഷൻ പ്ലാറ്റ്‌ഫോം",
+        dashLive: "പരിശോധന സജീവം",
+        dashTitle: "ഡോക്യുമെന്റ് ഇന്റലിജൻസ് ഡാഷ്‌ബോർഡ്",
+        dashDesc: "തെളിവുകൾ അടിസ്ഥാനമാക്കിയുള്ള മൾട്ടി-ഡോക്യുമെന്റ് പരിശോധന.",
+        btnUpload: "രേഖകൾ അപ്‌ലോഡ് ചെയ്യുക",
+        btnInvestigate: "ചോദ്യം ചോദിക്കുക",
+        totalDocs: "ആകെ രേഖകൾ",
+        analyzed: "വിശകലനം ചെയ്തവ",
+        pending: "ബാക്കിയുള്ളവ",
+        findings: "പ്രധാന കണ്ടെത്തലുകൾ",
+        conflicts: "കണ്ടെത്തിയ പൊരുത്തക്കേടുകൾ",
+        deadlines: "വരാനിരിക്കുന്ന സമയപരിധികൾ",
+        uploadTitle: "📄 രേഖകൾ അപ്‌ലോഡ്",
+        uploadDesc: "PDF, DOCX, TXT, JPG, PNG പിന്തുണ.",
+        pointsTitle: "📋 പ്രധാന വിവരങ്ങൾ",
+        pointsDesc: "തീയതികൾ, യോഗ്യത, സാമ്പത്തികം, പേജ് തെളിവുകൾ.",
+        investigateTitle: "🔍 രേഖകൾ പരിശോധിക്കുക",
+        investigateDesc: "ഡോക്യുമെന്റ് അടിസ്ഥാനമാക്കിയുള്ള ചോദ്യോത്തരങ്ങൾ.",
+        conflictsTitle: "⚠️ പൊരുത്തക്കേടുകൾ കാണുക",
+        conflictsDesc: "വ്യത്യാസങ്ങളും തീയതി മാറ്റങ്ങളും കണ്ടെത്തുക."
+      }
+    };
+
+    let currentLanguage = 'en';
+
+    // Universal Document Repository (8 Documents across Legal, Technical, Financial, Compliance)
+    const documentsRepo = [
+      { id: 1, name: "Master_Service_Agreement.pdf", type: "PDF", pages: 42, status: "Completed ✓", date: "04 Oct 2026", size: "4.2 MB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 2, name: "Policy_Amendment_v2.pdf", type: "PDF", pages: 2, status: "Completed ✓", date: "04 Oct 2026", size: "320 KB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 3, name: "Technical_Architecture_Spec.docx", type: "DOCX", pages: 28, status: "Completed ✓", date: "04 Oct 2026", size: "1.8 MB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 4, name: "Financial_Audit_Report.pdf", type: "PDF", pages: 4, status: "Completed ✓", date: "04 Oct 2026", size: "850 KB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 5, name: "ISO_Security_Certification.jpg", type: "JPG", pages: 1, status: "Completed ✓", date: "04 Oct 2026", size: "1.2 MB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 6, name: "Bank_Performance_Guarantee.pdf", type: "PDF", pages: 3, status: "Completed ✓", date: "04 Oct 2026", size: "540 KB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 7, name: "Hardware_Datasheet.png", type: "PNG", pages: 1, status: "Completed ✓", date: "04 Oct 2026", size: "920 KB", badge: "bg-emerald-950 text-emerald-300" },
+      { id: 8, name: "Compliance_Affidavit.pdf", type: "PDF", pages: 2, status: "Pending", date: "04 Oct 2026", size: "410 KB", badge: "bg-amber-950 text-amber-300" }
+    ];
+
+    // Important Extracted Points Grounded by Evidence
+    const importantPointsData = {
+      dates: [
+        { title: "Effective Commencement Date", value: "01 October 2026", doc: "Master_Service_Agreement.pdf", page: "Page 2", excerpt: "Agreement effective start date: 01.10.2026 at 10:00 AM" },
+        { title: "Original Submission / Expiry Deadline", value: "15 October 2026, 17:00 IST", doc: "Master_Service_Agreement.pdf", page: "Page 4", excerpt: "Final date for formal document submission and execution: 15.10.2026" },
+        { title: "Extended Deadline (Amendment v2)", value: "25 October 2026, 17:00 IST", doc: "Policy_Amendment_v2.pdf", page: "Page 1", excerpt: "Due to addendum review, the deadline is hereby extended to 25.10.2026" },
+        { title: "Audit Verification Review Date", value: "27 October 2026, 11:00 IST", doc: "Policy_Amendment_v2.pdf", page: "Page 1", excerpt: "Final verification session scheduled on 27.10.2026" }
+      ],
+      eligibility: [
+        { title: "Minimum Operational Experience", value: "Minimum 5 Years in Enterprise Infrastructure", doc: "Master_Service_Agreement.pdf", page: "Page 8", excerpt: "Vendor must demonstrate at least 5 years operational vintage in enterprise systems." },
+        { title: "Past Track Record Credentials", value: "3 Successfully Executed Projects of >= ₹3.00 Cr each", doc: "Master_Service_Agreement.pdf", page: "Page 9", excerpt: "Verified completion certificates for 3 enterprise scale infrastructure deployments." },
+        { title: "Authorized Partnership / Accreditation", value: "Direct Tier-1 OEM Manufacturer Authorization", doc: "Master_Service_Agreement.pdf", page: "Page 14", excerpt: "Manufacturer's Authorization Form (MAF) required for all primary hardware components." }
+      ],
+      financial: [
+        { title: "Total Contract / Project Value", value: "₹5,00,00,000 (₹5.00 Crore INR)", doc: "Master_Service_Agreement.pdf", page: "Page 3", excerpt: "Total estimated contract value: INR 5.00 Crore inclusive of 3 years SLA support." },
+        { title: "Performance Security Deposit", value: "₹10,00,000 (Irrevocable Bank Guarantee)", doc: "Master_Service_Agreement.pdf", page: "Page 5", excerpt: "Security Deposit of INR 10 Lakhs in form of Irrevocable Bank Guarantee." },
+        { title: "Minimum Average Annual Turnover", value: "₹15.00 Crore over last 3 Audited Years", doc: "Master_Service_Agreement.pdf", page: "Page 7", excerpt: "Average annual turnover of the entity must not be less than INR 15.00 Crore in FY 2023-26." }
+      ],
+      requirements: [
+        { title: "Statutory Tax & Registration", value: "Valid PAN Card and Active GSTIN Registration", doc: "Master_Service_Agreement.pdf", page: "Page 6", excerpt: "Mandatory submission of GST registration certificate and PAN card." },
+        { title: "Information Security Standard", value: "Active ISO 27001:2022 Certification", doc: "Master_Service_Agreement.pdf", page: "Page 11", excerpt: "Entity must possess active ISO 27001 certification valid throughout contract timeline." },
+        { title: "Non-Debarment Affidavit", value: "Notarized Affidavit on ₹100 Stamp Paper", doc: "Master_Service_Agreement.pdf", page: "Page 12", excerpt: "Affidavit declaring entity has never been debarred or blacklisted." }
+      ]
+    };
+
+    // NL Q&A Grounded Database
+    const qaDatabase = {
+      "What is the deadline?": {
+        answer: "The latest deadline is 25 October 2026 (17:00 IST). While the original Master Service Agreement set 15 October 2026, Policy Amendment v2 officially extended it by 10 days.",
+        doc: "Policy_Amendment_v2.pdf",
+        page: "Page 1",
+        confidence: "High (98%)",
+        color: "emerald",
+        quote: "The final submission deadline is hereby extended from 15.10.2026 to 25.10.2026 up to 17:00 Hrs."
+      },
+      "Who is eligible?": {
+        answer: "Entities must have a minimum of 5 years enterprise experience, completed 3 similar projects of value >= ₹3.00 Cr each, have an average annual turnover >= ₹15.00 Cr, and hold valid ISO 27001 accreditation.",
+        doc: "Master_Service_Agreement.pdf",
+        page: "Page 8-10",
+        confidence: "High (96%)",
+        color: "emerald",
+        quote: "Section 3.2: Eligibility criteria requires 5 years operation, 3 completed projects, and turnover >= 15 Cr."
+      },
+      "What documents are required?": {
+        answer: "Required documents include: (1) Technical Specification Proposal, (2) Certified Financial Audit Statement, (3) ISO 27001 Security Certificate, (4) Bank Performance Guarantee of ₹10 Lakhs, (5) OEM Authorization Forms, (6) Notarized Affidavit, and (7) GST & PAN registrations.",
+        doc: "Master_Service_Agreement.pdf",
+        page: "Page 6, 12",
+        confidence: "High (97%)",
+        color: "emerald",
+        quote: "Section 2.4 Checklist: Technical proposal, financial audit, bank guarantee, ISO certification, affidavit."
+      },
+      "What is the tender value?": {
+        answer: "The total estimated contract value is ₹5,00,00,000 (₹5.00 Crore INR) inclusive of 3 years comprehensive onsite SLA and maintenance.",
+        doc: "Master_Service_Agreement.pdf",
+        page: "Page 3",
+        confidence: "High (99%)",
+        color: "emerald",
+        quote: "Estimated Total Value: INR 5,00,00,000 (Rupees Five Crore only)."
+      },
+      "Which document mentions the eligibility criteria?": {
+        answer: "Eligibility criteria is detailed in 'Master_Service_Agreement.pdf' under Section 3 (Pages 8 to 11) covering operational vintage, project track record, and financial thresholds.",
+        doc: "Master_Service_Agreement.pdf",
+        page: "Page 8-11",
+        confidence: "High (99%)",
+        color: "emerald",
+        quote: "Section 3: Minimum Eligibility & Prequalification Criteria."
+      },
+      "What are the important requirements?": {
+        answer: "Key requirements are: 3-Year Comprehensive SLA Warranty, ₹15 Cr 3-Year Avg Turnover, Active ISO 27001 certification, ₹10 Lakh Bank Guarantee, and Non-Debarment Affidavit.",
+        doc: "Master_Service_Agreement.pdf",
+        page: "Pages 5, 7, 11, 15",
+        confidence: "High (95%)",
+        color: "emerald",
+        quote: "Clauses 2.1, 3.4, 4.8, 5.2 specify mandatory compliance parameters without exception."
+      },
+      "Are there any missing documents?": {
+        answer: "Yes, 1 document is missing/pending verification: The Notarized Compliance Affidavit (Compliance_Affidavit.pdf) has not completed processing and lacks the mandatory ₹100 stamp seal.",
+        doc: "Compliance_Affidavit.pdf",
+        page: "Page 1",
+        confidence: "Medium (82%)",
+        color: "amber",
+        quote: "Status: Affidavit submitted without notary registration serial number and state revenue stamp."
+      },
+      "What is different between these two documents?": {
+        answer: "Difference between Master Agreement and Amendment v2: Amendment v2 overrides the deadline from 15 Oct to 25 Oct, clarifies ISO 27001:2022 validity, and permits electronic Bank Guarantee transmission via SFMS.",
+        doc: "Policy_Amendment_v2.pdf vs Master_Service_Agreement.pdf",
+        page: "Page 1 vs Page 4",
+        confidence: "High (94%)",
+        color: "emerald",
+        quote: "Amendment v2 modifies Clause 1.3 (Deadlines) and Clause 4.2 (Guarantee mode) of original Agreement."
+      },
+      "Do these documents mention the same deadline?": {
+        answer: "No, there is a date conflict. Master_Service_Agreement.pdf mentions 15 Oct 2026, whereas Policy_Amendment_v2.pdf extends the deadline to 25 Oct 2026. The Amendment takes legal precedence.",
+        doc: "Policy_Amendment_v2.pdf",
+        page: "Page 1",
+        confidence: "High (99%)",
+        color: "emerald",
+        quote: "Date amendment: 25.10.2026 supersedes the previously published date of 15.10.2026."
+      },
+      "Are there any conflicting requirements?": {
+        answer: "Yes, 3 critical conflicts detected: (1) Financial Turnover Shortfall (₹11.8 Cr submitted vs ₹15.0 Cr required), (2) Expired ISO 27001 Certificate (expired 30 Sep 2026), and (3) Warranty Scope (1 yr submitted vs 3 yrs required).",
+        doc: "Financial_Audit_Report.pdf & ISO_Security_Certification.jpg",
+        page: "Page 2 & Page 1",
+        confidence: "High (98%)",
+        color: "rose",
+        quote: "Financial Report states FY24-26 Avg: 11.8 Cr; ISO Certificate Expiry: 30-Sep-2026."
+      },
+      "Which document has the latest information?": {
+        answer: "Policy_Amendment_v2.pdf contains the latest official information and overrides all previous schedule dates and submission guidelines in the base agreement.",
+        doc: "Policy_Amendment_v2.pdf",
+        page: "Page 1",
+        confidence: "High (99%)",
+        color: "emerald",
+        quote: "Published on 03.10.2026: Addendum & Amendment to Master Agreement Vol-I."
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderDocumentTables();
+      renderImportantPoints('all');
+      renderCompareTable();
+      renderConflictsList();
+      askPreset("What is the application deadline?");
+    });
+
+    function switchMainTab(tabId) {
+      const tabs = ['dashboard', 'upload', 'points', 'qa', 'compare', 'conflicts'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const navBtn = document.getElementById(`nav-tab-${t}`);
+        if (t === tabId) {
+          view.classList.remove('hidden');
+          navBtn.classList.add('tab-active');
+          navBtn.classList.remove('border-slate-800', 'bg-[#0d1527]', 'text-slate-300');
+        } else {
+          view.classList.add('hidden');
+          navBtn.classList.remove('tab-active');
+          navBtn.classList.add('border-slate-800', 'bg-[#0d1527]', 'text-slate-300');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      lucide.createIcons();
+    }
+
+    function renderDocumentTables() {
+      const dashTbody = document.getElementById('dashDocsTableBody');
+      const uploadTbody = document.getElementById('uploadDocsTableBody');
+
+      let rowsHtml = '';
+      documentsRepo.forEach(d => {
+        rowsHtml += `
+          <tr class="hover:bg-[#0e1628] transition">
+            <td class="py-3 px-4 font-semibold text-white flex items-center gap-2">
+              <i data-lucide="${d.type === 'PDF' ? 'file-text' : d.type === 'DOCX' ? 'file-code' : 'image'}" class="w-4 h-4 text-indigo-400"></i>
+              <span>${d.name}</span>
+            </td>
+            <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${d.type}</td>
+            <td class="py-3 px-4 text-slate-300 font-mono">${d.pages} pgs</td>
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${d.badge}">
+                ${d.status}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${d.date}</td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="inspectDoc(${d.id})" class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-[11px] font-bold transition">
+                Inspect
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      if (dashTbody) dashTbody.innerHTML = rowsHtml;
+      if (uploadTbody) uploadTbody.innerHTML = rowsHtml;
+      lucide.createIcons();
+    }
+
+    function renderImportantPoints(category) {
+      const container = document.getElementById('importantPointsContainer');
+      let html = '';
+
+      const sections = [
+        { key: 'dates', title: '📅 Important Dates & Deadlines', color: 'cyan', data: importantPointsData.dates },
+        { key: 'eligibility', title: '📋 Eligibility & Criteria', color: 'emerald', data: importantPointsData.eligibility },
+        { key: 'financial', title: '💰 Financial Details & Values', color: 'indigo', data: importantPointsData.financial },
+        { key: 'requirements', title: '⚠️ Important Rules & Clauses', color: 'amber', data: importantPointsData.requirements }
+      ];
+
+      sections.forEach(sec => {
+        if (category !== 'all' && category !== sec.key) return;
+
+        html += `
+          <div class="bg-[#0b101f] border border-slate-800/80 rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <h3 class="font-black text-sm text-white flex items-center gap-2">
+                <span>${sec.title}</span>
+              </h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${sec.data.length} Items</span>
+            </div>
+
+            <div class="space-y-3.5">
+              ${sec.data.map(item => `
+                <div class="bg-[#070b16] border border-slate-800/90 hover:border-indigo-500/50 p-4 rounded-2xl space-y-2 transition">
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="text-xs font-bold text-slate-200">${item.title}</span>
+                    <span class="text-xs font-black text-indigo-300 text-right">${item.value}</span>
+                  </div>
+                  
+                  <p class="text-[11px] text-slate-400 italic bg-[#0b101f] p-2 rounded-xl border border-slate-800/60 font-mono">
+                    "${item.excerpt}"
+                  </p>
+
+                  <div class="flex items-center justify-between text-[10px] font-mono pt-1 text-slate-400">
+                    <span class="flex items-center gap-1 text-emerald-400 font-bold">
+                      <i data-lucide="file-check" class="w-3.5 h-3.5"></i> Source: ${item.doc} &mdash; ${item.page}
+                    </span>
+                    <button onclick="askPreset('What is the value of ${item.title}?')" class="text-indigo-400 hover:underline">Verify</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function handleUserQuestion(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('userQueryInput');
+      const query = input.value.trim();
+      if (!query) return;
+      askPreset(query);
+    }
+
+    function askPreset(queryText) {
+      const input = document.getElementById('userQueryInput');
+      if (input) input.value = queryText;
+
+      const resultBox = document.getElementById('qaResultBox');
+      
+      let match = qaDatabase[queryText];
+      if (!match) {
+        for (const [key, val] of Object.entries(qaDatabase)) {
+          if (queryText.toLowerCase().includes(key.toLowerCase().slice(0, 8))) {
+            match = val;
+            break;
+          }
+        }
+      }
+
+      if (!match) {
+        match = {
+          answer: `Based on the uploaded documents, '${queryText}' is cross-referenced with Master_Service_Agreement.pdf and Amendment v2.`,
+          doc: "Master_Service_Agreement.pdf",
+          page: "Page 4",
+          confidence: "High (92%)",
+          color: "emerald",
+          quote: "All clauses in the primary documentation must be strictly adhered to with valid supporting documentation."
+        };
+      }
+
+      resultBox.innerHTML = `
+        <div class="bg-gradient-to-br from-[#0d1527] to-[#070b16] border border-indigo-500/40 rounded-3xl p-6 space-y-4 shadow-2xl animate-fade-in">
+          
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 rounded-lg bg-indigo-600/20 text-indigo-400">
+                <i data-lucide="message-square" class="w-4 h-4"></i>
+              </span>
+              <span class="text-xs font-mono text-slate-400">Question: <strong class="text-white">${queryText}</strong></span>
+            </div>
+            
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-${match.color}-950 text-${match.color}-400 border border-${match.color}-800/60">
+              <span class="h-2 w-2 rounded-full bg-${match.color}-400 animate-pulse"></span>
+              <span>Confidence: ${match.confidence}</span>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold">Answer:</div>
+            <div class="text-sm sm:text-base font-bold text-slate-100 leading-relaxed">
+              ${match.answer}
+            </div>
+          </div>
+
+          <div class="bg-[#050811] border border-slate-800 p-4 rounded-2xl space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-300">
+              <span class="flex items-center gap-1.5 text-indigo-400">
+                <i data-lucide="file-badge" class="w-4 h-4"></i>
+                <span>Source Evidence:</span>
+              </span>
+              <span class="font-mono text-xs text-slate-400">📄 ${match.doc} &bull; 📍 ${match.page}</span>
+            </div>
+
+            <div class="text-xs text-slate-300 italic bg-[#0b101f] p-3 rounded-xl border border-slate-800 font-mono">
+              "${match.quote}"
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 text-xs text-slate-400">
+            <span class="text-[11px]">Was this evidence-backed answer accurate?</span>
+            <div class="flex items-center gap-2">
+              <button onclick="alert('Evidence feedback recorded: Helpful (100% Grounded)')" class="px-3 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800 text-[11px] font-bold flex items-center gap-1">
+                <i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i> Yes, Accurate
+              </button>
+              <button onclick="alert('Feedback noted. Agent fine-tuning active.')" class="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-[11px]">
+                Report Issue
+              </button>
+            </div>
+          </div>
+
+        </div>
+      `;
+
+      lucide.createIcons();
+    }
+
+    function renderCompareTable() {
+      const tbody = document.getElementById('compareTableBody');
+      const comparisons = [
+        {
+          cat: "Financial Threshold",
+          clause: "Clause 3.4 (Min ₹15.0 Cr Avg)",
+          tender: "Average annual turnover of entity must not be less than INR 15.00 Cr in last 3 audited years.",
+          bidder: "Financial Audit shows 3-year average turnover of INR 11.80 Cr (Shortfall of ₹3.20 Cr).",
+          status: "MISMATCH / SHORTFALL",
+          badge: "bg-rose-950 text-rose-300 border-rose-800"
+        },
+        {
+          cat: "Security Accreditation",
+          clause: "Clause 4.8 (ISO 27001)",
+          tender: "Must possess active ISO 27001 certificate valid during entire contract execution period.",
+          bidder: "Submitted ISO 27001 Certificate expired on 30-Sep-2026 (Expired prior to verification).",
+          status: "EXPIRED CERTIFICATE",
+          badge: "bg-rose-950 text-rose-300 border-rose-800"
+        },
+        {
+          cat: "Warranty / SLA Scope",
+          clause: "Clause 5.2 (3-Yr Comprehensive SLA)",
+          tender: "Comprehensive 3-year onsite OEM warranty including full hardware replacement.",
+          bidder: "Proposal states 1-year standard OEM warranty + optional payable maintenance thereafter.",
+          status: "PARTIAL COMPLIANCE",
+          badge: "bg-amber-950 text-amber-300 border-amber-800"
+        },
+        {
+          cat: "Submission Deadline",
+          clause: "Section 1.3 vs Amendment v2",
+          tender: "Original date: 15 Oct 2026. Amendment v2 extended date: 25 Oct 2026.",
+          bidder: "Document submitted on 12 Oct 2026 (Timely submission under both original and extended deadline).",
+          status: "TIMELY & COMPLIANT",
+          badge: "bg-emerald-950 text-emerald-300 border-emerald-800"
+        },
+        {
+          cat: "Performance Security",
+          clause: "Clause 2.1 (₹10 Lakhs BG)",
+          tender: "Irrevocable Bank Guarantee of ₹10,00,000 valid for 180 days from scheduled bank.",
+          bidder: "Bank Guarantee of ₹10,00,000 submitted via SBI with validity till 30 April 2027.",
+          status: "VERIFIED COMPLIANT",
+          badge: "bg-emerald-950 text-emerald-300 border-emerald-800"
+        }
+      ];
+
+      tbody.innerHTML = comparisons.map(c => `
+        <tr class="hover:bg-[#0d1527] transition">
+          <td class="py-4 px-4 font-bold text-white">
+            <div class="text-xs">${c.cat}</div>
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">${c.clause}</div>
+          </td>
+          <td class="py-4 px-4 text-xs text-slate-300">
+            ${c.tender}
+          </td>
+          <td class="py-4 px-4 text-xs text-slate-300">
+            ${c.bidder}
+          </td>
+          <td class="py-4 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-black border ${c.badge}">
+              ${c.status}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function renderConflictsList() {
+      const container = document.getElementById('conflictsListContainer');
+      const conflicts = [
+        {
+          title: "1. Financial Turnover Value Mismatch",
+          severity: "CRITICAL",
+          desc: "Master Service Agreement mandates average annual turnover >= ₹15.00 Cr for FY24, FY25, FY26. Submitted Financial Statement verifies only ₹11.80 Cr average.",
+          impact: "Discrepancy of ₹3.20 Cr shortfall between requirement and audited financial submission.",
+          source: "Financial_Audit_Report.pdf (Page 2) vs Master_Service_Agreement.pdf (Page 7)"
+        },
+        {
+          title: "2. Expired ISO 27001 Information Security Certificate",
+          severity: "HIGH",
+          desc: "Submitted ISO 27001 certificate expired on 30 September 2026. Required validity is through October 2026 onwards.",
+          impact: "Certificate expired prior to verification date. Renewal certificate or audit receipt required.",
+          source: "ISO_Security_Certification.jpg (Page 1) vs Master_Service_Agreement.pdf (Page 11)"
+        },
+        {
+          title: "3. Warranty Term Scope Conflict (1 Year vs 3 Years)",
+          severity: "MEDIUM",
+          desc: "Agreement requires 3 Years Comprehensive SLA Support. Technical Proposal offers 1 Year standard support with optional AMC.",
+          impact: "Scope conflict between primary agreement mandate and vendor proposal commitment.",
+          source: "Technical_Architecture_Spec.docx (Page 19) vs Master_Service_Agreement.pdf (Page 15)"
+        }
+      ];
+
+      container.innerHTML = conflicts.map(item => `
+        <div class="bg-[#070b16] border border-rose-900/60 p-5 rounded-2xl space-y-2 glow-rose">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-black text-rose-300">${item.title}</span>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800">${item.severity}</span>
+          </div>
+          <p class="text-xs text-slate-300">${item.desc}</p>
+          <div class="bg-[#0b101f] p-2.5 rounded-xl border border-rose-900/30 text-xs text-rose-200">
+            <strong>Impact / Resolution:</strong> ${item.impact}
+          </div>
+          <div class="text-[10px] font-mono text-slate-500 pt-1">
+            📍 Citation: ${item.source}
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      const progressBox = document.getElementById('uploadProgressBox');
+      const progressBar = document.getElementById('uploadProgressBar');
+      const progressPct = document.getElementById('uploadProgressPct');
+      const progressStep = document.getElementById('uploadProgressStep');
+
+      progressBox.classList.remove('hidden');
+
+      let pct = 10;
+      progressStep.innerText = `Uploaded ${files.length} file(s) & initiating OCR...`;
+      progressBar.style.width = '20%';
+      progressPct.innerText = '20%';
+
+      const interval = setInterval(() => {
+        pct += 25;
+        if (pct === 45) {
+          progressStep.innerText = 'Extracting entities, dates, and cross-document clauses...';
+        } else if (pct === 70) {
+          progressStep.innerText = 'Cross-referencing evidence against comparative terms...';
+        } else if (pct >= 100) {
+          clearInterval(interval);
+          progressBar.style.width = '100%';
+          progressPct.innerText = '100%';
+          progressStep.innerText = 'Document Analysis Completed ✓ (Evidence Verified)';
+
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const ext = f.name.split('.').pop().toUpperCase();
+            documentsRepo.unshift({
+              id: Date.now() + i,
+              name: f.name,
+              type: ext,
+              pages: Math.floor(Math.random() * 8) + 1,
+              status: "Completed ✓",
+              date: "Just Now",
+              size: `${(f.size / 1024).toFixed(1)} KB`,
+              badge: "bg-emerald-950 text-emerald-300"
+            });
+          }
+
+          renderDocumentTables();
+          setTimeout(() => {
+            progressBox.classList.add('hidden');
+            switchMainTab('points');
+          }, 1000);
+        }
+        progressBar.style.width = `${pct}%`;
+        progressPct.innerText = `${pct}%`;
+      }, 400);
+    }
+
+    function changeLanguage(lang) {
+      currentLanguage = lang;
+      const t = i18n[lang] || i18n.en;
+
+      document.getElementById('header-tagline').innerText = t.tagline;
+      document.getElementById('dash-live-badge').innerText = t.dashLive;
+      document.getElementById('dash-title').innerText = t.dashTitle;
+      document.getElementById('dash-desc').innerText = t.dashDesc;
+      document.getElementById('btn-upload-dash').innerText = t.btnUpload;
+      document.getElementById('btn-investigate-dash').innerText = t.btnInvestigate;
+
+      document.getElementById('card-total-docs-lbl').innerText = t.totalDocs;
+      document.getElementById('card-analyzed-lbl').innerText = t.analyzed;
+      document.getElementById('card-pending-lbl').innerText = t.pending;
+      document.getElementById('card-findings-lbl').innerText = t.findings;
+      document.getElementById('card-conflicts-lbl').innerText = t.conflicts;
+      document.getElementById('card-deadlines-lbl').innerText = t.deadlines;
+
+      document.getElementById('tile-upload-title').innerText = t.uploadTitle;
+      document.getElementById('tile-upload-desc').innerText = t.uploadDesc;
+      document.getElementById('tile-points-title').innerText = t.pointsTitle;
+      document.getElementById('tile-points-desc').innerText = t.pointsDesc;
+      document.getElementById('tile-investigate-title').innerText = t.investigateTitle;
+      document.getElementById('tile-investigate-desc').innerText = t.investigateDesc;
+      document.getElementById('tile-conflicts-title').innerText = t.conflictsTitle;
+      document.getElementById('tile-conflicts-desc').innerText = t.conflictsDesc;
+
+      lucide.createIcons();
+    }
+
+    function quickLoadBenchmark() {
+      switchMainTab('dashboard');
+      alert("Sample Multi-Document Bundle (8 Documents, 3 Conflicts, 5 Deadlines) loaded successfully!");
+    }
+
+    function inspectDoc(id) {
+      const doc = documentsRepo.find(d => d.id === id);
+      if (doc) {
+        switchMainTab('points');
+      }
+    }
+  </script>
+</body>
+</html>
